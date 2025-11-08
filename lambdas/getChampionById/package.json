@@ -1,0 +1,10 @@
+{
+  "name": "get-champion-by-id",
+  "version": "1.0.0",
+  "description": "Lambda para obtener campeones de DynamoDB por ID",
+  "main": "getChampionsById.js",
+  "type": "commonjs",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

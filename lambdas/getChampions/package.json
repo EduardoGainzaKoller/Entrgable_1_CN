@@ -1,0 +1,10 @@
+{
+  "name": "get-champions",
+  "version": "1.0.0",
+  "description": "Lambda para obtener campeones de DynamoDB",
+  "main": "getChampions.js",
+  "type": "commonjs",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

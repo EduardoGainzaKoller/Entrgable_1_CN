@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>League Champions CRUD</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #fff;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .config-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .config-modal {
+      background: #fff;
+      color: #000;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .config-modal h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .config-modal input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .config-modal button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .config-modal button:hover {
+      background: #1d4ed8;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #1d4ed8;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table th, .table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .table th {
+      background: rgba(255,255,255,0.15);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      color: black;
+      padding: 30px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+    }
+
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+
+    .error {
+      background: #ef4444;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal de Configuración: URL + API Key -->
+  <div id="configOverlay" class="config-overlay">
+    <div class="config-modal">
+      <h2>🔐 Configuración de API</h2>
+      <input type="text" id="apiUrl" placeholder="API URL (ej: https://xxxx.execute-api.us-east-1.amazonaws.com/prod)">
+      <input type="text" id="apiKey" placeholder="API Key">
+      <button onclick="saveConfig()">Conectar</button>
+    </div>
+  </div>
+
+  <div class="container" id="app" style="display:none;">
+    <h1>🏆 League of Legends Champions CRUD</h1>
+    <div class="actions">
+      <button class="btn" onclick="openModal()">+ Nuevo Campeón</button>
+      <button class="btn btn-secondary" onclick="loadChampions()">🔄 Recargar</button>
+      <button class="btn btn-secondary" onclick="logout()">⚙️ Configurar</button>
+    </div>
+
+    <div id="errorContainer"></div>
+    <div id="loading" class="loading" style="display:none;">Cargando campeones...</div>
+
+    <table class="table" id="championsTable">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Rol</th>
+          <th>Dificultad</th>
+          <th>Habilidades</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="championModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle">Nuevo Campeón</h2>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="championName" required>
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <input type="text" id="championRole">
+      </div>
+      <div class="form-group">
+        <label>Dificultad</label>
+        <input type="text" id="championDifficulty">
+      </div>
+      <div class="form-group">
+        <label>Habilidades (separadas por comas)</label>
+        <textarea id="championAbilities"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn" onclick="saveChampion()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let API_URL = '';
+    let API_KEY = '';
+    let champions = [];
+    let currentId = null;
+
+    window.onload = () => {
+      const savedUrl = localStorage.getItem('apiUrl');
+      const savedKey = localStorage.getItem('apiKey');
+      if (savedUrl) document.getElementById('apiUrl').value = savedUrl;
+      if (savedKey) document.getElementById('apiKey').value = savedKey;
+      if (savedUrl && savedKey) saveConfig();
+    };
+
+    function saveConfig() {
+      const url = document.getElementById('apiUrl').value.trim();
+      const key = document.getElementById('apiKey').value.trim();
+      if (!url || !key) return alert('Por favor, introduce la URL del API Gateway y la API Key');
+      API_URL = url.endsWith('/') ? url.slice(0, -1) : url;
+      API_KEY = key;
+      localStorage.setItem('apiUrl', API_URL);
+      localStorage.setItem('apiKey', API_KEY);
+      document.getElementById('configOverlay').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadChampions();
+    }
+
+    function logout() {
+      document.getElementById('configOverlay').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY  // ✅ Incluye la API Key en todas las peticiones
+        }
+      };
+      if (body) options.body = JSON.stringify(body);
+
+      const res = await fetch(`${API_URL}${endpoint}`, options);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(err.error || `Error ${res.status}`);
+      }
+      return method === 'DELETE' ? null : await res.json();
+    }
+
+    async function loadChampions() {
+      try {
+        showLoading(true);
+        champions = await apiRequest('/champions');
+        renderTable();
+      } catch (err) {
+        showError('Error al cargar campeones: ' + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.querySelector('#championsTable tbody');
+      tbody.innerHTML = '';
+      champions.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${c.name}</td>
+          <td>${c.role}</td>
+          <td>${c.difficulty}</td>
+          <td>${(c.abilities || []).join(', ')}</td>
+          <td>
+            <button class="btn" onclick="editChampion('${c.id}')">✏️</button>
+            <button class="btn btn-secondary" onclick="deleteChampion('${c.id}')">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openModal() {
+      currentId = null;
+      document.getElementById('modalTitle').textContent = 'Nuevo Campeón';
+      document.getElementById('championName').value = '';
+      document.getElementById('championRole').value = '';
+      document.getElementById('championDifficulty').value = '';
+      document.getElementById('championAbilities').value = '';
+      document.getElementById('championModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('championModal').classList.remove('active');
+    }
+
+    async function saveChampion() {
+      const data = {
+        name: document.getElementById('championName').value.trim(),
+        role: document.getElementById('championRole').value.trim(),
+        difficulty: document.getElementById('championDifficulty').value.trim(),
+        abilities: document.getElementById('championAbilities').value.split(',').map(a => a.trim()).filter(a => a)
+      };
+
+      if (!data.name) return alert('El nombre es obligatorio');
+
+      try {
+        if (currentId) {
+          const updated = await apiRequest(`/champions/${currentId}`, 'PUT', data);
+          const index = champions.findIndex(c => c.id === currentId);
+          champions[index] = updated;
+        } else {
+          const created = await apiRequest('/champions', 'POST', data);
+          champions.push(created);
+        }
+        renderTable();
+        closeModal();
+      } catch (err) {
+        showError('Error al guardar: ' + err.message);
+      }
+    }
+
+    async function editChampion(id) {
+      const champ = champions.find(c => c.id === id);
+      if (!champ) return;
+      currentId = id;
+      document.getElementById('modalTitle').textContent = 'Editar Campeón';
+      document.getElementById('championName').value = champ.name;
+      document.getElementById('championRole').value = champ.role;
+      document.getElementById('championDifficulty').value = champ.difficulty;
+      document.getElementById('championAbilities').value = champ.abilities.join(', ');
+      document.getElementById('championModal').classList.add('active');
+    }
+
+    async function deleteChampion(id) {
+      if (!confirm('¿Eliminar este campeón?')) return;
+      try {
+        await apiRequest(`/champions/${id}`, 'DELETE');
+        champions = champions.filter(c => c.id !== id);
+        renderTable();
+      } catch (err) {
+        showError('Error al eliminar: ' + err.message);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('errorContainer').innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    document.getElementById('championModal').onclick = (e) => {
+      if (e.target.id === 'championModal') closeModal();
+    };
+  </script>
+</body>
+</html>

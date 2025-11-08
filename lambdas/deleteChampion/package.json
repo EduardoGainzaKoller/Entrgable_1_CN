@@ -1,0 +1,10 @@
+{
+  "name": "delete-champion",
+  "version": "1.0.0",
+  "description": "Lambda para eliminar campeones de DynamoDB",
+  "main": "deleteChampion.js",
+  "type": "commonjs",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

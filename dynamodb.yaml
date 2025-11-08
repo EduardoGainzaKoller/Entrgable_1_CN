@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'DynamoDB Table of champions'
+
+Resources:
+  ChampionsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: 'Champions'
+      AttributeDefinitions:
+        - AttributeName: 'id'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'id'
+          KeyType: 'HASH'
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: 'Project'
+          Value: 'ChampionsApp'
+        - Key: 'Environment'
+          Value: 'Production'
+
+Outputs:
+  ChampionsTableName:
+    Description: 'Name of the DynamoDB table'
+    Value: !Ref ChampionsTable
+    Export:
+      Name: 'Champions'
+  ChampionsTableArn:
+    Description: 'ARN of the DynamoDB table'
+    Value: !GetAtt ChampionsTable.Arn
+    Export:
+      Name: 'ChampionsTableArn'

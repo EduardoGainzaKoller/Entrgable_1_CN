@@ -1,0 +1,14 @@
+FROM public.ecr.aws/lambda/nodejs:20
+
+# Establecer directorio de trabajo
+WORKDIR /var/task
+
+# Copiar package.json e instalar dependencias
+COPY package*.json ./
+RUN npm install
+
+# Copiar el código fuente
+COPY . .
+
+# Entrada de Lambda
+CMD ["getChampions.handler"]

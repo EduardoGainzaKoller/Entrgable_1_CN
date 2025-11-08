@@ -1,0 +1,10 @@
+{
+  "name": "update-champion",
+  "version": "1.0.0",
+  "description": "Lambda para obtener campeones de DynamoDB",
+  "main": "updateChampion.js",
+  "type": "commonjs",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

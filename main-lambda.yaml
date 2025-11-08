@@ -1,0 +1,337 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Despliegue de API Gateway + Lambdas + permisos para Champions App (con API Key requerida)'
+
+Parameters:
+  ECRRepositoryURI:
+    Type: String
+    Description: URI del repositorio ECR (proveniente del stack champions-ecr)
+  TableName:
+    Type: String
+    Description: Nombre de la tabla DynamoDB (proveniente del stack champions-dynamodb)
+  Region:
+    Type: String
+    Default: us-east-1
+    Description: Región de despliegue
+
+Resources:
+  ########################################
+  # Lambdas (usan el rol LabRole existente)
+  ########################################
+
+  GetChampionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetChampion
+      PackageType: Image
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      Code:
+        ImageUri: !Sub "${ECRRepositoryURI}:getchampions"
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+
+  CreateChampionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CreateChampion
+      PackageType: Image
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      Code:
+        ImageUri: !Sub "${ECRRepositoryURI}:createchampion"
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+
+  UpdateChampionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UpdateChampion
+      PackageType: Image
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      Code:
+        ImageUri: !Sub "${ECRRepositoryURI}:updatechampion"
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+
+  DeleteChampionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DeleteChampion
+      PackageType: Image
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      Code:
+        ImageUri: !Sub "${ECRRepositoryURI}:deletechampion"
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+
+  ########################################
+  # API Gateway
+  ########################################
+
+  ChampionsApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: ChampionsApi
+
+  ChampionsApiRootResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ChampionsApi.RootResourceId
+      PathPart: champions
+      RestApiId: !Ref ChampionsApi
+
+  ChampionsApiIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ChampionsApiRootResource
+      PathPart: "{id}"
+      RestApiId: !Ref ChampionsApi
+
+  ########################################
+  # Métodos principales (requieren API Key)
+  ########################################
+
+  GetChampionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      ResourceId: !Ref ChampionsApiRootResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${GetChampionLambda.Arn}/invocations
+
+  CreateChampionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      ResourceId: !Ref ChampionsApiRootResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${CreateChampionLambda.Arn}/invocations
+
+  UpdateChampionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      ResourceId: !Ref ChampionsApiIdResource
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${UpdateChampionLambda.Arn}/invocations
+
+  DeleteChampionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      ResourceId: !Ref ChampionsApiIdResource
+      HttpMethod: DELETE
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${DeleteChampionLambda.Arn}/invocations
+
+  ########################################
+  # Métodos OPTIONS (CORS)
+  ########################################
+
+  OptionsChampionMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      ResourceId: !Ref ChampionsApiRootResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+            ResponseTemplates:
+              application/json: '{}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+
+  OptionsChampionIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      ResourceId: !Ref ChampionsApiIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+            ResponseTemplates:
+              application/json: '{}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+
+  ########################################
+  # Permisos de invocación
+  ########################################
+
+  LambdaInvokePermissionGet:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetChampionLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaInvokePermissionCreate:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CreateChampionLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaInvokePermissionUpdate:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UpdateChampionLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  LambdaInvokePermissionDelete:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DeleteChampionLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  ########################################
+  # Deployment
+  ########################################
+
+  ChampionsApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - GetChampionMethod
+      - CreateChampionMethod
+      - UpdateChampionMethod
+      - DeleteChampionMethod
+      - OptionsChampionMethod
+      - OptionsChampionIdMethod
+    Properties:
+      RestApiId: !Ref ChampionsApi
+      StageName: prod
+
+  ########################################
+  # API Key + Usage Plan
+  ########################################
+
+  ApiKeyChampions:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: ChampionsApiKey
+      Enabled: true
+
+  ChampionsUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn: ChampionsApiDeployment
+    Properties:
+      UsagePlanName: ChampionsUsagePlan
+      Description: Plan de uso para la API de Champions
+      ApiStages:
+        - ApiId: !Ref ChampionsApi
+          Stage: prod
+      Throttle:
+        RateLimit: 10
+        BurstLimit: 2
+      Quota:
+        Limit: 1000
+        Period: DAY
+
+  UsagePlanKeyChampions:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKeyChampions
+      KeyType: API_KEY
+      UsagePlanId: !Ref ChampionsUsagePlan
+
+  ########################################
+  # S3 Bucket para frontend
+  ########################################
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "champions-frontend-${AWS::AccountId}-${AWS::Region}"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index-serverless.html
+        ErrorDocument: index-serverless.html
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowPublicRead
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+
+Outputs:
+  ApiUrl:
+    Description: URL base del API
+    Value: !Sub "https://${ChampionsApi}.execute-api.${Region}.amazonaws.com/prod"
+
+  ApiKeyValue:
+    Description: "API Key para consumir la API de Champions"
+    Value: !Ref ApiKeyChampions
+
+  FrontendBucketName:
+    Description: Nombre del bucket donde se despliega el frontend
+    Value: !Ref FrontendBucket
+
+  FrontendWebsiteURL:
+    Description: URL pública del sitio web
+    Value: !GetAtt FrontendBucket.WebsiteURL

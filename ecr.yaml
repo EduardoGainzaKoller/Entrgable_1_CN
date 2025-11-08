@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation Template to create an ECR Repository'
+
+Resources:
+  ChampionsECRRepository:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      RepositoryName: 'champions-repo'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Expire untagged images after 2 days",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 2
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+
+Outputs:
+  RepositoryURI:
+    Description: 'URI of the ECR Repository'
+    Value: !GetAtt ChampionsECRRepository.RepositoryUri
+    Export:
+      Name: 'ChampionsECRRepositoryURI'
+  RepositoryName:
+    Description: 'Name of the ECR Repository'
+    Value: !Ref ChampionsECRRepository

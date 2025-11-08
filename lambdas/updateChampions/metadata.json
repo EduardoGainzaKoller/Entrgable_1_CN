@@ -1,0 +1,49 @@
+{
+  "buildx.build.provenance": {
+    "builder": {
+      "id": ""
+    },
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/public.ecr.aws/lambda/nodejs@20?platform=linux%2Famd64",
+        "digest": {
+          "sha256": "82aacaa706a7516f81a966d2ffd94b7b9923c7c056b098f8a19cb7e97a07ef22"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "dockerfile"
+      },
+      "parameters": {
+        "frontend": "dockerfile.v0",
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          }
+        ]
+      },
+      "environment": {
+        "platform": "linux/amd64",
+        "ProvenanceCustomEnv": null
+      }
+    }
+  },
+  "buildx.build.ref": "desktop-linux/desktop-linux/0zfu95727ckbpjwbkz57arowo",
+  "containerimage.config.digest": "sha256:a883daaf55652077bbadadfe10d0508b84bbc92fffa759d3c1f425bfff7b7982",
+  "containerimage.descriptor": {
+    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+    "digest": "sha256:c6ec5494e12a518143f089c7008cf8457a9d0586df2f602d6fc0c3ebef8d2e69",
+    "size": 2271,
+    "platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    }
+  },
+  "containerimage.digest": "sha256:c6ec5494e12a518143f089c7008cf8457a9d0586df2f602d6fc0c3ebef8d2e69",
+  "image.name": "docker.io/library/updatechampion:latest"
+}
