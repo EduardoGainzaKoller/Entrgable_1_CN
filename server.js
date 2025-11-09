@@ -28,14 +28,12 @@ app.get('/health', (req, res) => {
 // ---------------------------
 // API Routes
 // ---------------------------
-// Todas las rutas de champions: /champions, /champions/:id
 app.use('/api', championRoutes);
 
-// ---------------------------
-// Frontend estático
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Para SPA: si no coincide con ninguna API, devolver index.html
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

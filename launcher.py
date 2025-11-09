@@ -8,10 +8,6 @@ Componentes:
   1. ECR Repository
   2. DynamoDB Table
   3. ECS Fargate + API Gateway + NLB
-Requisitos previos:
-  - AWS CLI configurado o credenciales en ~/.aws/credentials
-  - Docker instalado
-  - Permisos de CloudFormation, ECS, ECR, IAM, DynamoDB
 """
 
 import boto3
@@ -77,11 +73,9 @@ def deploy_stack(stack_name, template_file, parameters=None):
     Despliega un stack de CloudFormation.
     """
     try:
-        # Leer template
         with open(template_file, "r") as f:
             template_body = f.read()
 
-        # Verificar si el stack existe
         try:
             cf.describe_stacks(StackName=stack_name)
             stack_exists = True
@@ -126,7 +120,6 @@ deploy_stack("champions-ecr", TEMPLATES["ECR"])
 # =========================
 # 2. Subir imagen Docker a ECR
 # =========================
-# Obtener URI del repositorio desde outputs
 response = cf.describe_stacks(StackName="champions-ecr")
 repository_uri = next(
     o['OutputValue'] for o in response['Stacks'][0]['Outputs'] if o['OutputKey'] == 'RepositoryURI'
@@ -134,7 +127,6 @@ repository_uri = next(
 
 print(f"Repositorio ECR: {repository_uri}")
 
-# Login a ECR
 print("Haciendo login en ECR...")
 login_cmd = f"aws ecr get-login-password --region {REGION}"
 login_proc = subprocess.run(login_cmd.split(), capture_output=True, text=True)
@@ -148,7 +140,6 @@ if docker_login_proc.returncode != 0:
     print(f"Error en docker login: {docker_login_proc.stderr}")
     sys.exit(1)
 
-# Construir, taggear y subir imagen
 print("Construyendo imagen Docker...")
 subprocess.run(["docker", "build", "-t", "champions-api:latest", "."], check=True)
 subprocess.run(["docker", "tag", "champions-api:latest", f"{repository_uri}:latest"], check=True)
